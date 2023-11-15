@@ -45,7 +45,6 @@ Restricciones
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
 
 
 int main()
@@ -56,32 +55,27 @@ int main()
     {
         int pid = fork();
 
-        if (pid == -1)
+        if (pid == -1) // Error al crear el hijo
         {
-            // Error al crear el hijo
             perror("Error en el fork");
             exit(-1);
         }
-        else if (pid == 0)
+        else if (pid == 0) // PID = 0 -> Hijo
         {
-            // Creacion de hijo
-            printf("Hijo %d\n", i);
+            printf("Hijo %d con pid %d\n", i, getpid());
 
-            if (i == 2 || i == 3)
+            if (i == 2 || i == 3) 
             {
                 int nieto_pid = fork();
 
-                if (nieto_pid == -1)
+                if (nieto_pid == -1) // Error al crear el nieto
                 {
-                    // Error al crear el nieto
                     perror("Error en el fork (nieto)");
                     exit(-1);
                 }
-                else if (nieto_pid == 0)
+                else if (nieto_pid == 0) //PID = 0 -> Nieto
                 {
-                    // Creacion de nieto
-                    printf("Nieto de Hijo %d\n", i);
-                    exit(0);
+                    printf("Nieto de Hijo %d con pid %d\n", i, getpid());
                 }
                 else
                 {
