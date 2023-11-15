@@ -50,6 +50,28 @@ Restricciones
     -SIGCHLD: envia una señal al proceso padre cuando el hijo muere (por defecto se ignora)
     -SIGACTION: permite cambiar el comportamiento de las señales
 
+sigset_t: variable que almacena un conjunto de señales
+    -sigemptyset: inicializa el conjunto de señales
+    -sigfillset: añade todas las señales al conjunto
+    -sigaddset: añade una señal al conjunto
+    -sigdelset: elimina una señal del conjunto
+    -sigismember: comprueba si una señal pertenece al conjunto
+
+sigprocmask: permite bloquear señales (señales pendientes)
+    -SIG_BLOCK: bloquea las señales del conjunto
+    -SIG_UNBLOCK: desbloquea las señales del conjunto
+    -SIG_SETMASK: establece el conjunto de señales <-- USAR ESTE
+
+sigsuspend: espera a que llegue una señal (señales pendientes)
+    -sigprocmask: bloquea las señales del conjunto
+    -pause: espera a que llegue una señal
+    -sigprocmask: desbloquea las señales del conjunto
+
+sigsetmask: espera a que llegue una señal (señales pendientes)
+    -sigprocmask: bloquea las señales del conjunto
+    -sigprocmask: desbloquea las señales del conjunto
+
+¡¡¡¡¡CONTROL DE ERRORES A TODO!!!!
 */
 
 #include <stdio.h>
@@ -89,7 +111,6 @@ int main()
                 }
                 else
                 {
-
                 }
             }
 
