@@ -40,6 +40,16 @@ Restricciones
     No se puede suponer que los PIDs de los procesos de una ristra van a aparecer consecutivos. Puestos en plan exquisito, ni siquiera podemos suponer que estarán ordenados de menor a mayor (puede ocurrir que se agoten los PIDs y retome la cuenta partiendo de cero).
     No está permitido el uso de ficheros, tuberías u otro mecanismo externo para transmitir información entre los procesos.
 
+
+    SIGNALS:
+    -SIGKILL: envia una señal al proceso para que se mate -9 (predeterminada)
+    -SIGTERM: envia una señal al proceso para que se mate = kill (pid)
+    -SIGSTOP: envia una señal al proceso para que se pare
+    -SIGUSR1: usar para trabajar como user (señal a mover)
+    -SIGUSR2: usar para trabajar como user (señal a mover)
+    -SIGCHLD: envia una señal al proceso padre cuando el hijo muere (por defecto se ignora)
+    -SIGACTION: permite cambiar el comportamiento de las señales
+
 */
 
 #include <stdio.h>
