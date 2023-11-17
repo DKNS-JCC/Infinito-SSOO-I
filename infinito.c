@@ -41,7 +41,8 @@ Restricciones
     No está permitido el uso de ficheros, tuberías u otro mecanismo externo para transmitir información entre los procesos.
 
 
-    SIGNALS:
+
+SIGNALS:
     -SIGKILL: envia una señal al proceso para que se mate -9 (predeterminada)
     -SIGTERM: envia una señal al proceso para que se mate = kill (pid)
     -SIGSTOP: envia una señal al proceso para que se pare
@@ -77,44 +78,54 @@ sigsetmask: espera a que llegue una señal (señales pendientes)
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 
 int main()
 {
     puts("ARBOL DE PROCESOS");
+    int i;
 
-    for (int i = 1; i <= 4; ++i)
+
+    printf("Proceso padre con pid %d\n", getpid());
+    for (i = 1; i <= 4; i++)
     {
         int pid = fork();
-
-        if (pid == -1) // Error al crear el hijo
+        switch (pid)
         {
-            perror("Error en el fork");
+        case -1:
+            perror("Error en el fork del proceso padre");
             exit(-1);
-        }
-        else if (pid == 0) // PID = 0 -> Hijo
-        {
-            printf("Hijo %d con pid %d\n", i, getpid());
-
-            if (i == 2 || i == 3) 
+            break;
+        case 0:
+            printf("Proceso hijo %d con pid %d del padre con pid %d\n", i, getpid(), getppid());
+            if (i == 2 || i == 3)
             {
-                int nieto_pid = fork();
-
-                if (nieto_pid == -1) // Error al crear el nieto
+                int pidNieto = fork();
+                switch (pidNieto)
                 {
-                    perror("Error en el fork (nieto)");
+                case -1:
+                    perror("Error en el fork del proceso nieto");
                     exit(-1);
-                }
-                else if (nieto_pid == 0) //PID = 0 -> Nieto
-                {
-                    printf("Nieto de Hijo %d con pid %d\n", i, getpid());
-                }
-                else
-                {
+                    break;
+
+                case 0:
+                    printf("Proceso nieto %d con pid %d del padre con pid %d\n", i, getpid(), getppid());
+                    break;
+
+                default:
+                    wait(NULL);
+                    break;
                 }
             }
-
             exit(0);
+            break;
+
+        default:
+            wait(NULL);
+            break;
         }
     }
     return 0;
