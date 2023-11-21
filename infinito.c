@@ -81,52 +81,98 @@ sigsetmask: espera a que llegue una señal (señales pendientes)
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <time.h>
 
+void crearArbol();
 
 int main()
 {
     puts("ARBOL DE PROCESOS");
-    int i;
 
-
-    printf("Proceso padre con pid %d\n", getpid());
-    for (i = 1; i <= 4; i++)
+    int i, vueltas = 0;
+    int t_inicio = time(NULL); // Tiempo de inicio
+    while (time(NULL) - t_inicio <= 25)
     {
-        int pid = fork();
-        switch (pid)
+
+        for (i = 1; i <= 4; i++)
         {
-        case -1:
-            perror("Error en el fork del proceso padre");
-            exit(-1);
-            break;
-        case 0:
-            printf("Proceso hijo %d con pid %d del padre con pid %d\n", i, getpid(), getppid());
-            if (i == 2 || i == 3)
+            int pid = fork(); // Crea un proceso hijo
+            switch (pid)
             {
-                int pidNieto = fork();
-                switch (pidNieto)
+            case -1:
+
+                perror("Error en el fork del proceso padre");
+                exit(-1);
+                break;
+
+            case 0:
+
+                if (i == 2 || i == 3)
                 {
-                case -1:
-                    perror("Error en el fork del proceso nieto");
-                    exit(-1);
-                    break;
+                    int pidNieto = fork();
+                    switch (pidNieto)
+                    {
+                    case -1:
 
-                case 0:
-                    printf("Proceso nieto %d con pid %d del padre con pid %d\n", i, getpid(), getppid());
-                    break;
+                        perror("Error en el fork del proceso hijo");
+                        exit(-1);
+                        break;
 
-                default:
-                    wait(NULL);
-                    break;
+                    case 0:
+
+                        if (i == 2)
+                        {
+                            // Programa Nieto 2
+                            printf("Soy el nieto %d %d de %d\n", i, getpid(), getppid());
+                        }
+                        else if (i == 3)
+                        {
+                            // Programa Nieto 3
+                            printf("Soy el nieto %d %d de %d\n", i, getpid(), getppid());
+                        }
+                        break;
+
+                    default:
+
+                        if (i == 2)
+                        {
+                            // Programa Hijo 2
+                            printf("Soy el hijo %d %d\n", i, getpid());
+                            wait(NULL);
+                        }
+                        else if (i == 3)
+                        {
+                            // Programa Hijo 3
+                            printf("Soy el hijo %d %d\n", i, getpid());
+                            wait(NULL);
+                        }
+                        wait(NULL);
+                        break;
+                    }
                 }
-            }
-            exit(0);
-            break;
+                else if (i == 1)
+                {
+                    // Programa Hijo 1
+                    printf("Soy el hijo %d %d\n", i, getpid());
+                    wait(NULL);
+                }
+                else if (i == 4)
+                {
+                    // Programa Hijo 1
+                    printf("Soy el hijo %d %d\n", i, getpid());
+                    wait(NULL);
+                }
+                exit(0);
+                break;
 
-        default:
-            wait(NULL);
-            break;
+            default:
+
+                // Programa Padre
+                printf("Soy el padre %d\n", getpid());
+                wait(NULL);
+                break;
+            }
         }
     }
-    return 0;
+    printf("La señal ha dado %d vueltas.\n", vueltas);
 }
