@@ -85,6 +85,7 @@ sigsetmask: espera a que llegue una señal (señales pendientes)
 
 static pid_t pidsHijos[4];
 static pid_t pidsNietos[4];
+pid_t pidPadre;
 
 int main()
 {
@@ -94,6 +95,7 @@ int main()
     
 
     printf("Soy el padre %d\n", getpid());
+    pidPadre = getpid();
 
     for (i = 1; i <= 4; i++)
     {
@@ -233,5 +235,5 @@ void accionN2()
 void accionN3()
 {
     // Programa Nieto 3
-    printf("Soy el nieto %d %d de %d\n", 3, getpid(), getppid());
+    printf("Soy el nieto %d %d de %d\n y padre = %d", 3, getpid(), getppid(), pidPadre);
 }
