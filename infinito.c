@@ -83,157 +83,83 @@ sigsetmask: espera a que llegue una señal (señales pendientes)
 #include <sys/types.h>
 #include <time.h>
 
-static pid_t pidsHijos[4];
-static pid_t pidsNietos[4];
-pid_t pidPadre;
-
 int main()
 {
-    puts("ARBOL DE PROCESOS");
+    int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3;
+    pidp = getpid();
+    printf("P: %d\n", pidp);
+    pidh1 = fork();
 
-    int i, vueltas = 0;
-    
-
-    printf("Soy el padre %d\n", getpid());
-    pidPadre = getpid();
-
-    for (i = 1; i <= 4; i++)
+    switch (pidh1)
     {
-        pidsHijos[i] = fork(); // Crea un proceso hijo
-        switch (pidsHijos[i])
+    case -1:
+        perror("Error en el fork h1");
+        exit(-1);
+
+    case 0:
+        printf("H1: %d\n", getpid());
+        break;
+    default:
+        pidh4 = fork();
+        switch (pidh4)
         {
         case -1:
-
-            perror("Error en el fork del proceso padre");
+            perror("Error en el fork h4");
             exit(-1);
-            break;
-
         case 0:
-
-            if (i == 2 || i == 3)
+            printf("H4: %d\n", getpid());
+            break;
+        default:
+            pidh2 = fork();
+            switch (pidh2)
             {
-                pidsNietos[i] = fork();
-                switch (pidsNietos[i])
+            case -1:
+                perror("Error en el fork h2");
+                exit(-1);
+            case 0:
+                printf("H2: %d\n", getpid());
+                pidn2 = fork();
+                switch (pidn2)
                 {
                 case -1:
-
-                    perror("Error en el fork del proceso hijo");
+                    perror("Error en el fork n2");
                     exit(-1);
-                    break;
-
                 case 0:
-
-                    if (i == 2)
-                    {
-                        // Programa Nieto 2
-                        accionN2();
-                    }
-                    else if (i == 3)
-                    {
-                        // Programa Nieto 3
-                        accionN3();
-                    }
+                    printf("N2: %d\n", getpid());
                     break;
-
                 default:
-
-                    if (i == 2)
-                    {
-                        // Programa Hijo 2
-                        accionH2();
-                        wait(NULL);
-                    }
-                    else if (i == 3)
-                    {
-                        // Programa Hijo 3
-                        accionH3();
-                        wait(NULL);
-                    }
-                    wait(NULL);
                     break;
                 }
+                break;
+            default:
+                pidh3 = fork();
+                switch (pidh3)
+                {
+                case -1:
+                    perror("Error en el fork h3");
+                    exit(-1);
+                case 0:
+                    printf("H3: %d\n", getpid());
+                    pidn3 = fork();
+                    switch (pidn3)
+                    {
+                    case -1:
+                        perror("Error en el fork n3");
+                        exit(-1);
+                    case 0:
+                        printf("N3: %d\n", getpid());
+                        break;
+                    default:
+                        break;
+                    }
+                    break;
+                default:
+                    break;
+                }
+                break;
             }
-            else if (i == 1)
-            {
-                // Programa Hijo 1
-                accionH1();
-                wait(NULL);
-            }
-            else if (i == 4)
-            {
-                // Programa Hijo 1
-                accionH4();
-                wait(NULL);
-            }
-            exit(0);
-            break;
-
-        default:
-
-            // Programa Padre
-            accionP();
-            wait(NULL);
-            break;
         }
     }
-
-    int t_inicio = time(NULL); // Tiempo de inicio
-    while (time(NULL) - t_inicio < 25)
-    {
-
-        vueltas++;
-    }
-
-    printf("La señal ha dado %d vueltas.\n", vueltas);
-}
-void accionP()
-{
-    int i;
-    // Programa Padre
-    for (i = 1; i <= 4; i++)
-    {
-        printf ("PIDS Hijos: %d\n", pidsHijos[i]);
-    }
-    
-}
-void accionH1()
-{
-    // Programa Hijo 1
-    printf("Soy el hijo %d %d\n", 1, getpid());
-}
-void accionH2()
-{
-    int i;
-    // Programa Hijo 2
-    printf("Soy el hijo %d %d\n", 2, getpid());
-    for (i = 1; i <= 4; i++)
-    {
-        printf("PIDS Nietos: %d\n", pidsNietos[i]);
-    }
-
-}
-void accionH3()
-{
-    int i;
-    // Programa Hijo 3
-    printf("Soy el hijo %d %d\n", 3, getpid());
-    for (i = 1; i <= 4; i++)
-    {
-        printf("PIDS Nietos: %d\n", pidsNietos[i]);
-    }
-}
-void accionH4()
-{
-    // Programa Hijo 4
-    printf("Soy el hijo %d %d\n", 4, getpid());
-}
-void accionN2()
-{
-    // Programa Nieto 2
-    printf("Soy el nieto %d %d de %d\n", 2, getpid(), getppid());
-}
-void accionN3()
-{
-    // Programa Nieto 3
-    printf("Soy el nieto %d %d de %d\n y padre = %d", 3, getpid(), getppid(), pidPadre);
+    alarm (25);
+    pause ();
 }
