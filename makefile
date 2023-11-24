@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c11
+CFLAGS = -Wall -Wextra 
 SRC = infinito.c
 OBJ = $(SRC:.c=.o)
 EXECUTABLE = infinito
