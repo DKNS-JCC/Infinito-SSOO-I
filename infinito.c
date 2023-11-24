@@ -81,11 +81,18 @@ sigsetmask: espera a que llegue una señal (señales pendientes)
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/types.h>
-#include <time.h>
+
+void alarma(int sig);
+
+int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3;
 
 int main()
 {
-    int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3;
+    struct sigaction salarma;
+    salarma.sa_handler = &alarma;
+    sigemptyset(&salarma.sa_mask);
+    salarma.sa_flags = 0;
+
     pidp = getpid();
     printf("P: %d\n", pidp);
     pidh1 = fork();
@@ -98,6 +105,7 @@ int main()
 
     case 0:
         printf("H1: %d\n", getpid());
+        pidh1 = getpid();
         break;
     default:
         pidh4 = fork();
@@ -108,6 +116,7 @@ int main()
             exit(-1);
         case 0:
             printf("H4: %d\n", getpid());
+            pidh4 = getpid();
             break;
         default:
             pidh2 = fork();
@@ -119,6 +128,7 @@ int main()
             case 0:
                 printf("H2: %d\n", getpid());
                 pidn2 = fork();
+                pidh2 = getpid();
                 switch (pidn2)
                 {
                 case -1:
@@ -126,6 +136,7 @@ int main()
                     exit(-1);
                 case 0:
                     printf("N2: %d\n", getpid());
+                    pidn2 = getpid();
                     break;
                 default:
                     break;
@@ -141,6 +152,7 @@ int main()
                 case 0:
                     printf("H3: %d\n", getpid());
                     pidn3 = fork();
+                    pidh3 = getpid();
                     switch (pidn3)
                     {
                     case -1:
@@ -148,6 +160,7 @@ int main()
                         exit(-1);
                     case 0:
                         printf("N3: %d\n", getpid());
+                        pidn3 = getpid();
                         break;
                     default:
                         break;
@@ -160,6 +173,116 @@ int main()
             }
         }
     }
-    alarm (25);
-    pause ();
+    if (sigaction(SIGALRM, &salarma, NULL) == -1)
+    {
+        perror("Error en sigaction alarma");
+        exit(-1);
+    }
+    if (alarm(1) == -1)
+    {
+        perror("Error en alarm");
+        exit(-1);
+    }
+    printf("\nP=%d, H1=%d, H2=%d, H3=%d, H4=%d, N2=%d, N3=%d ==> %d\n", pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, getpid());
+    while (1)
+    {
+    }
+}
+
+//PROGRAMA PARA MATAR A TODOS LOS PROCESOS AL FINALIZAR EL TIEMPO
+void alarma(int sig)
+{
+    if (pidp == getpid())
+    {
+        puts("Soy el padre");
+        wait (NULL);
+        wait (NULL);
+        wait (NULL);
+        //ESPERA A QUE TODOS LOS HIJOS MUERAN MENOS H4
+        if (kill(pidh4, SIGKILL) == -1)
+        {
+            perror("Error en kill h4");
+            exit(-1);
+        }
+        else
+        {
+            puts("H4 muerto");
+            wait(NULL);
+        }
+        printf("La señal ha dado:");
+        exit(0);
+    }
+    else if (pidh1 == getpid())
+    {
+        puts("Soy el hijo 1");
+    }
+    else if (pidh2 == getpid())
+    {
+        puts("Soy el hijo 2");
+        if (kill(pidn2, SIGKILL) == -1)
+        {
+            perror("Error en kill n2");
+            exit(-1);
+        }
+        else
+        {
+            puts("N2 muerto");
+            wait(NULL);
+        }
+        
+    }
+    else if (pidh3 == getpid())
+    {
+        puts("Soy el hijo 3");
+        if (kill(pidn3, SIGKILL) == -1)
+        {
+            perror("Error en kill n3");
+            exit(-1);
+        }
+        else
+        {
+            puts("N3 muerto");
+            wait(NULL);
+        }
+        //Como h3 es el ultimo hijo en crearse, mata a todos los procesos y asi mismo.
+        if (kill(pidh1, SIGKILL) == -1)
+        {
+            perror("Error en kill h1");
+            exit(-1);
+        }
+        else
+        {
+            puts("H1 muerto");
+        }
+        if (kill(pidh2, SIGKILL) == -1)
+        {
+            perror("Error en kill h2");
+            exit(-1);
+        }
+        else
+        {
+            puts("H2 muerto");
+        }
+        if (raise(SIGKILL) == -1)
+        {
+            perror("Error en raise");
+            exit(-1);
+        }
+        else
+        {
+            puts("H3 muerto");
+        }
+    }
+    else if (pidh4 == getpid())
+    {
+        puts("Soy el hijo 4");
+    }
+    else if (pidn2 == getpid())
+    {
+        puts("Soy el nieto 2");
+    }
+    else if (pidn3 == getpid())
+    {
+        puts("Soy el nieto 3");
+    }
 }
