@@ -6,22 +6,51 @@
 #include <sys/types.h>
 
 void alarma(int sig);
-int sigusrHandler(int sig);
+void sigusrHandler1(int sig);
+void sigusrHandler2(int sig);
 
-pid_t pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, mediavuelta;
+int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, mediavuelta,infinitos;
 
 int main()
 {
     struct sigaction salarma;
     salarma.sa_handler = &alarma;
-    sigemptyset(&salarma.sa_mask);
-    salarma.sa_flags = 0;
 
     struct sigaction susr1;
-    susr1.sa_handler = &sigusrHandler;
-    sigemptyset(&susr1.sa_mask);
-    susr1.sa_flags = 0;
+    susr1.sa_handler = &sigusrHandler1;
+    susr1.sa_flags = SA_RESTART;
 
+    struct sigaction susr2;
+    susr2.sa_handler = &sigusrHandler2;
+    susr2.sa_flags = SA_RESTART;
+
+    sigset_t mask;
+    sigfillset(&mask);
+    sigprocmask(SIG_SETMASK, &mask, NULL);
+
+    sigset_t maskusr1;
+    sigfillset(&maskusr1);
+    sigdelset(&maskusr1, SIGUSR1);
+    sigdelset(&maskusr1, SIGALRM);
+    sigdelset(&maskusr1, SIGINT);
+
+    sigset_t maskusr2;
+    sigfillset(&maskusr2);
+    sigdelset(&maskusr2, SIGUSR1);
+    sigdelset(&maskusr2, SIGUSR2);
+    sigdelset(&maskusr2, SIGINT);
+
+    if (sigaction(SIGALRM, &salarma, NULL) == -1)
+    {
+        perror("Error en sigaction alarma");
+        exit(-1);
+    }
+    if (sigaction(SIGUSR1, &susr1, NULL) == -1)
+    {
+        perror("Error en sigaction usr1");
+        exit(-1);
+    }
+    alarm(5);
     pidp = getpid();
     printf("P: %d\n", pidp);
     pidh1 = fork();
@@ -33,8 +62,15 @@ int main()
         exit(-1);
 
     case 0:
-        printf("H1: %d\n", getpid());
+        printf("H1 creado: %d\n", getpid());
         pidh1 = getpid();
+        while (1)
+        {
+            sigsuspend(&maskusr1);
+            
+            kill(pidp, SIGUSR1);
+            
+        }
         break;
     default:
         pidh4 = fork();
@@ -44,8 +80,14 @@ int main()
             perror("Error en el fork h4");
             exit(-1);
         case 0:
-            printf("H4: %d\n", getpid());
+            printf("H4 creado: %d\n", getpid());
             pidh4 = getpid();
+            while (1)
+            {
+                sigsuspend(&maskusr1);
+                kill(pidp, SIGUSR1);
+                
+            }
             break;
         default:
             pidh2 = fork();
@@ -55,7 +97,7 @@ int main()
                 perror("Error en el fork h2");
                 exit(-1);
             case 0:
-                printf("H2: %d\n", getpid());
+                printf("H2 creado: %d\n", getpid());
                 pidn2 = fork();
                 pidh2 = getpid();
                 switch (pidn2)
@@ -64,10 +106,20 @@ int main()
                     perror("Error en el fork n2");
                     exit(-1);
                 case 0:
-                    printf("N2: %d\n", getpid());
+                    printf("N2 creado: %d\n", getpid());
                     pidn2 = getpid();
+                    while (1)
+                    {
+                        sigsuspend(&maskusr1);
+                        kill(pidh1, SIGUSR1);
+                    }
                     break;
                 default:
+                    while (1)
+                    {
+                        sigsuspend(&maskusr2);
+                        kill(pidn2, SIGUSR1);
+                    }
                     break;
                 }
                 break;
@@ -79,7 +131,7 @@ int main()
                     perror("Error en el fork h3");
                     exit(-1);
                 case 0:
-                    printf("H3: %d\n", getpid());
+                    printf("H3 creado: %d\n", getpid());
                     pidn3 = fork();
                     pidh3 = getpid();
                     switch (pidn3)
@@ -88,174 +140,107 @@ int main()
                         perror("Error en el fork n3");
                         exit(-1);
                     case 0:
-                        printf("N3: %d\n", getpid());
+                        printf("N3 creado: %d \n", getpid());
                         pidn3 = getpid();
+                        while (1)
+                        {
+                            sigsuspend(&maskusr1);
+                            kill(pidh4, SIGUSR1);
+                        }
                         break;
                     default:
+                        while (1)
+                        {
+                            sigsuspend(&maskusr2);
+                            kill(pidn3, SIGUSR1);
+                        }
                         break;
                     }
                     break;
                 default:
+
                     break;
                 }
                 break;
             }
         }
-    }
-    if (sigaction(SIGALRM, &salarma, NULL) == -1)
-    {
-        perror("Error en sigaction alarma");
-        exit(-1);
-    }
-    alarm(3);
-    while (1)
-    {
-        // if (sigusrHandler(SIGUSR1) != 0)
-        // {
-        //     printf ("error al enviar señal a H%d", mediavuelta % 2 == 0 ? 3 : 2); //CALCULAR H3 O H2
-        //     exit(-1);
-        // }
-    }
-}
-
-// PROGRAMA PARA MANEJAR LA SEÑAL SIGUSR1
-int sigusrHandler(int sig)
-{
-    int error = 0;
-    if (pidp == getpid())
-    {
-        if (pidp == getpid())
+        kill(pidh3, SIGUSR1);
+        while (1)
         {
-            // ENVIAR SEÑAL A H3
-            if (mediavuelta % 2 == 0) //CASO H3
-            {
-                if (kill (pidh3, sig) == -1)
-                {
-                    perror("Fallo al enviar señal de P a H3");
-                    error = 3;
-                }
-                else
-                {
-                    puts("Señal enviada de P a H3");
-                    mediavuelta++;
-                }
+            if ((mediavuelta%2)==0)
+            {   
+                sigsuspend(&maskusr1);
+                mediavuelta++;
+                kill(pidh2, SIGUSR1);
+                
             }
-            // ENVIAR SEÑAL A H2
-            else
+            else 
             {
-                if (kill (pidh2, sig) == -1)
-                {
-                    perror("Fallo al enviar señal de P a H2");
-                    error = 2;
-                }
-                else
-                {
-                    puts("Señal enviada de P a H2");
-                    mediavuelta++;
-                }
+                sigsuspend(&maskusr1);
+                mediavuelta++;
+                kill(pidh3, SIGUSR1);
             }
         }
     }
-    if (pidh1 == getpid())
-    {
-        
-    }
-    return error;
 }
 
-// PROGRAMA PARA MATAR A TODOS LOS PROCESOS AL FINALIZAR EL TIEMPO
-void alarma(int time)
+void alarma(int sig)
 {
-    if (pidp == getpid())
+    if (getpid()==pidp)
     {
-        puts("Soy el padre");
-        wait(NULL);
-        wait(NULL);
-        wait(NULL);
-        // ESPERA A QUE TODOS LOS HIJOS MUERAN MENOS H4
-        if (kill(pidh4, SIGKILL) == -1)
-        {
-            perror("Error en kill h4");
-            exit(-1);
-        }
-        else
-        {
-            puts("H4 muerto");
-            wait(NULL);
-        }
-        printf("La señal ha dado:");
-        exit(0);
+        printf("Ha dado %d vueltas\n", mediavuelta/2);
+        kill (pidh2, SIGUSR2);
+        kill (pidh3, SIGUSR2);
+        printf ("PASS\n");
     }
-    else if (pidh1 == getpid())
+    else if (getpid()==pidh1)
     {
-        puts("Soy el hijo 1");
+        printf("H1: %d\n", getpid());
     }
-    else if (pidh2 == getpid())
+    else if (getpid()==pidh2)
     {
-        puts("Soy el hijo 2");
-        if (kill(pidn2, SIGKILL) == -1)
-        {
-            perror("Error en kill n2");
-            exit(-1);
-        }
-        else
-        {
-            puts("N2 muerto");
-            wait(NULL);
-        }
+        printf("H2: %d\n", getpid());
     }
-    else if (pidh3 == getpid())
+    else if (getpid()==pidh3)
     {
-        puts("Soy el hijo 3");
-        if (kill(pidn3, SIGKILL) == -1)
-        {
-            perror("Error en kill n3");
-            exit(-1);
-        }
-        else
-        {
-            puts("N3 muerto");
-            wait(NULL);
-        }
-        // Como h3 es el ultimo hijo en crearse, mata a todos los procesos y asi mismo.
-        if (kill(pidh1, SIGKILL) == -1)
-        {
-            perror("Error en kill h1");
-            exit(-1);
-        }
-        else
-        {
-            puts("H1 muerto");
-        }
-        if (kill(pidh2, SIGKILL) == -1)
-        {
-            perror("Error en kill h2");
-            exit(-1);
-        }
-        else
-        {
-            puts("H2 muerto");
-        }
-        if (raise(SIGKILL) == -1)
-        {
-            perror("Error en raise");
-            exit(-1);
-        }
-        else
-        {
-            puts("H3 muerto");
-        }
+        printf("H3: %d\n", getpid());
     }
-    else if (pidh4 == getpid())
+    else if (getpid()==pidh4)
     {
-        puts("Soy el hijo 4");
+        printf("H4: %d\n", getpid());
     }
-    else if (pidn2 == getpid())
+    else if (getpid()==pidn2)
     {
-        puts("Soy el nieto 2");
+        printf("N2: %d\n", getpid());
     }
-    else if (pidn3 == getpid())
+    else if (getpid()==pidn3)
     {
-        puts("Soy el nieto 3");
+        printf("N3: %d\n", getpid());
+    }
+    else
+    {
+        printf("Error en la alarma\n");
+    }
+}
+
+void sigusrHandler1(int sig){
+    printf("Infinitos: %d\n", infinitos);
+    infinitos++;
+}
+
+void sigusrHandler2(int sig){
+    if (getpid()==pidh2)
+    {
+        kill (pidn2, SIGKILL);
+        puts ("N2 muerto");
+    }
+    else if (getpid()==pidh3)
+    {
+        kill (pidn3, SIGKILL);
+        puts ("N3 muerto");
+    }
+    else
+    {
+        printf("Error kill nietos\n");
     }
 }
