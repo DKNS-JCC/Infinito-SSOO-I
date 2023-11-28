@@ -190,42 +190,123 @@ void alarma(int sig)
 {
     if (getpid() == pidp)
     {
-        printf("Ha dado %d vueltas\n", mediavuelta / 2);
-        kill(pidh2, SIGUSR2);
-        kill(pidh3, SIGUSR2);
+        sigset_t maskp;
+        sigfillset(&maskp);
+        sigdelset(&maskp, SIGUSR2);
 
-        kill(pidh1, SIGKILL);
-        kill(pidh4, SIGKILL);
-        kill(pidh2, SIGKILL);
-        kill(pidh3, SIGKILL);
-        wait (NULL);
-        wait (NULL);
-        wait (NULL);
-        wait (NULL);
-        printf("HIJOS DELETED\n");
+        // ESPERA A QUE N2 Y N3 MUERAN PARA MATAR A HIJOS
+        if (kill(pidh2, SIGUSR2) == -1)
+        {
+            perror("Error en kill USR2 h2");
+            exit(-1);
+        }
+        sigsuspend(&maskp);
+        puts("Recibida1");
+
+        if (kill(pidh3, SIGUSR2) == -1)
+        {
+            perror("Error en kill USR2 h3");
+            exit(-1);
+        }
+        sigsuspend(&maskp);
+        puts("Recibida2");
+
+        // MATAR A LOS HIJOS
+        if (kill(pidh1, SIGKILL) == -1)
+        {
+            perror("Error en kill h1");
+            exit(-1);
+        }
+        else
+        {
+            printf("H1 muerto\n");
+        }
+        if (kill(pidh4, SIGKILL) == -1)
+        {
+            perror("Error en kill h4");
+            exit(-1);
+        }
+        else
+        {
+            printf("H4 muerto\n");
+        }
+        if (kill(pidh2, SIGKILL) == -1)
+        {
+            perror("Error en kill h2");
+            exit(-1);
+        }
+        else
+        {
+            printf("H2 muerto\n");
+        }
+        if (kill(pidh3, SIGKILL) == -1)
+        {
+            perror("Error en kill h3");
+            exit(-1);
+        }
+        else
+        {
+            printf("H3 muerto\n");
+        }
+        // ESPERA A QUE LOS HIJOS MUERAN PARA ACABAR
+        wait(NULL);
+        wait(NULL);
+        wait(NULL);
+        wait(NULL);
+
+        printf("La senal ha dado %d vueltas\n", mediavuelta / 2);
+
         exit(0);
     }
 }
 
-void sigusrHandler1(int sig)
-{
-    infinitos++;
-}
+// MANEJADORES DE SIGUSR1
+void sigusrHandler1(int sig) {}
 
+// MANEJADORES DE SIGUSR2
 void sigusrHandler2(int sig)
 {
-    if (getpid() == pidh2)
+    if (getpid() == pidh2 || getpid() == pidh3)
     {
-        kill(pidn2, SIGKILL);
-        wait(NULL);
-    }
-    else if (getpid() == pidh3)
-    {
-        kill(pidn3, SIGKILL);
-        wait(NULL);
-    }
-    else
-    {
-        printf("Error kill nietos\n");
+
+        if (getpid() == pidh2)
+        {
+            if (kill(pidn2, SIGKILL) == -1)
+            {
+                perror("Error en kill n2");
+                exit(-1);
+            }
+            else
+            {
+                wait(NULL);
+                printf("N2 muerto\n");
+                if (kill(getppid(), SIGUSR2) == -1)
+                {
+                    perror("Error en kill USR2 p");
+                    exit(-1);
+                }
+            }
+
+        }
+        if (getpid() == pidh3)
+        {
+            if (kill(pidn3, SIGKILL) == -1)
+            {
+                perror("Error en kill n3");
+                exit(-1);
+            }
+            else
+            {
+                wait(NULL);
+                printf("N3 muerto\n");
+                if (kill(getppid(), SIGUSR2) == -1)
+                {
+                    perror("Error en kill USR2 p");
+                    exit(-1);
+                }
+            }
+            
+        }
+
     }
 }
