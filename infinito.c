@@ -9,7 +9,7 @@ void alarma(int sig);
 void sigusrHandler1(int sig);
 void sigusrHandler2(int sig);
 
-int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, mediavuelta,infinitos;
+int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, mediavuelta, infinitos;
 
 int main()
 {
@@ -50,7 +50,12 @@ int main()
         perror("Error en sigaction usr1");
         exit(-1);
     }
-    alarm(5);
+    if (sigaction(SIGUSR2, &susr2, NULL) == -1)
+    {
+        perror("Error en sigaction usr2");
+        exit(-1);
+    }
+    alarm(25);
     pidp = getpid();
     printf("P: %d\n", pidp);
     pidh1 = fork();
@@ -67,9 +72,8 @@ int main()
         while (1)
         {
             sigsuspend(&maskusr1);
-            
+
             kill(pidp, SIGUSR1);
-            
         }
         break;
     default:
@@ -86,7 +90,6 @@ int main()
             {
                 sigsuspend(&maskusr1);
                 kill(pidp, SIGUSR1);
-                
             }
             break;
         default:
@@ -167,14 +170,13 @@ int main()
         kill(pidh3, SIGUSR1);
         while (1)
         {
-            if ((mediavuelta%2)==0)
-            {   
+            if ((mediavuelta % 2) == 0)
+            {
                 sigsuspend(&maskusr1);
                 mediavuelta++;
                 kill(pidh2, SIGUSR1);
-                
             }
-            else 
+            else
             {
                 sigsuspend(&maskusr1);
                 mediavuelta++;
@@ -186,58 +188,41 @@ int main()
 
 void alarma(int sig)
 {
-    if (getpid()==pidp)
+    if (getpid() == pidp)
     {
-        printf("Ha dado %d vueltas\n", mediavuelta/2);
-        kill (pidh2, SIGUSR2);
-        kill (pidh3, SIGUSR2);
-        printf ("PASS\n");
-    }
-    else if (getpid()==pidh1)
-    {
-        printf("H1: %d\n", getpid());
-    }
-    else if (getpid()==pidh2)
-    {
-        printf("H2: %d\n", getpid());
-    }
-    else if (getpid()==pidh3)
-    {
-        printf("H3: %d\n", getpid());
-    }
-    else if (getpid()==pidh4)
-    {
-        printf("H4: %d\n", getpid());
-    }
-    else if (getpid()==pidn2)
-    {
-        printf("N2: %d\n", getpid());
-    }
-    else if (getpid()==pidn3)
-    {
-        printf("N3: %d\n", getpid());
-    }
-    else
-    {
-        printf("Error en la alarma\n");
+        printf("Ha dado %d vueltas\n", mediavuelta / 2);
+        kill(pidh2, SIGUSR2);
+        kill(pidh3, SIGUSR2);
+
+        kill(pidh1, SIGKILL);
+        kill(pidh4, SIGKILL);
+        kill(pidh2, SIGKILL);
+        kill(pidh3, SIGKILL);
+        wait (NULL);
+        wait (NULL);
+        wait (NULL);
+        wait (NULL);
+        printf("HIJOS DELETED\n");
+        exit(0);
     }
 }
 
-void sigusrHandler1(int sig){
-    printf("Infinitos: %d\n", infinitos);
+void sigusrHandler1(int sig)
+{
     infinitos++;
 }
 
-void sigusrHandler2(int sig){
-    if (getpid()==pidh2)
+void sigusrHandler2(int sig)
+{
+    if (getpid() == pidh2)
     {
-        kill (pidn2, SIGKILL);
-        puts ("N2 muerto");
+        kill(pidn2, SIGKILL);
+        wait(NULL);
     }
-    else if (getpid()==pidh3)
+    else if (getpid() == pidh3)
     {
-        kill (pidn3, SIGKILL);
-        puts ("N3 muerto");
+        kill(pidn3, SIGKILL);
+        wait(NULL);
     }
     else
     {
