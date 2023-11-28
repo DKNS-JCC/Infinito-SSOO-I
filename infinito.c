@@ -13,6 +13,7 @@ int pidp, pidh1, pidh2, pidh3, pidh4, pidn2, pidn3, mediavuelta, infinitos;
 
 int main()
 {
+    //CREACION DE MANEJADORES
     struct sigaction salarma;
     salarma.sa_handler = &alarma;
 
@@ -24,6 +25,7 @@ int main()
     susr2.sa_handler = &sigusrHandler2;
     susr2.sa_flags = SA_RESTART;
 
+    // MASCARA DE SEÑALES
     sigset_t mask;
     sigfillset(&mask);
     sigprocmask(SIG_SETMASK, &mask, NULL);
@@ -40,22 +42,29 @@ int main()
     sigdelset(&maskusr2, SIGUSR2);
     sigdelset(&maskusr2, SIGINT);
 
+    // ASIGNACION DE MANEJADORES
     if (sigaction(SIGALRM, &salarma, NULL) == -1)
     {
         perror("Error en sigaction alarma");
         exit(-1);
     }
+
     if (sigaction(SIGUSR1, &susr1, NULL) == -1)
     {
         perror("Error en sigaction usr1");
         exit(-1);
     }
+
     if (sigaction(SIGUSR2, &susr2, NULL) == -1)
     {
         perror("Error en sigaction usr2");
         exit(-1);
     }
-    alarm(25);
+
+    //SET DE ALARMA
+    alarm(5);
+
+    //CREACION DE PROCESOS
     pidp = getpid();
     printf("P: %d\n", pidp);
     pidh1 = fork();
@@ -63,17 +72,23 @@ int main()
     switch (pidh1)
     {
     case -1:
+
         perror("Error en el fork h1");
         exit(-1);
 
     case 0:
+
         printf("H1 creado: %d\n", getpid());
         pidh1 = getpid();
         while (1)
         {
             sigsuspend(&maskusr1);
-
-            kill(pidp, SIGUSR1);
+            //MANDAR SEÑAL DE H1 A P
+            if (kill(pidp, SIGUSR1) == -1)
+            {
+                perror("Error en kill USR1 h2");
+                exit(-1);
+            }
         }
         break;
     default:
@@ -81,25 +96,38 @@ int main()
         switch (pidh4)
         {
         case -1:
+
             perror("Error en el fork h4");
             exit(-1);
+
         case 0:
+
             printf("H4 creado: %d\n", getpid());
             pidh4 = getpid();
             while (1)
             {
                 sigsuspend(&maskusr1);
-                kill(pidp, SIGUSR1);
+                //MANDAR SEÑAL DE H4 A P
+                if (kill(pidp, SIGUSR1) == -1)
+                {
+                    perror("Error en kill USR1 h1");
+                    exit(-1);
+                }
             }
             break;
+            
         default:
+
             pidh2 = fork();
             switch (pidh2)
             {
             case -1:
+
                 perror("Error en el fork h2");
                 exit(-1);
+
             case 0:
+
                 printf("H2 creado: %d\n", getpid());
                 pidn2 = fork();
                 pidh2 = getpid();
@@ -114,6 +142,7 @@ int main()
                     while (1)
                     {
                         sigsuspend(&maskusr1);
+                        //MANDAR SEÑAL DE N2 A H1
                         kill(pidh1, SIGUSR1);
                     }
                     break;
@@ -121,19 +150,25 @@ int main()
                     while (1)
                     {
                         sigsuspend(&maskusr2);
+                        //MANDAR SEÑAL DE H2 A N2
                         kill(pidn2, SIGUSR1);
                     }
                     break;
                 }
                 break;
+
             default:
+
                 pidh3 = fork();
                 switch (pidh3)
                 {
                 case -1:
+
                     perror("Error en el fork h3");
                     exit(-1);
+
                 case 0:
+
                     printf("H3 creado: %d\n", getpid());
                     pidn3 = fork();
                     pidh3 = getpid();
@@ -148,13 +183,20 @@ int main()
                         while (1)
                         {
                             sigsuspend(&maskusr1);
-                            kill(pidh4, SIGUSR1);
+                            //MANDAR SEÑAL DE N3 A H4
+                            if (kill(pidh4, SIGUSR1) == -1)
+                            {
+                                perror("Error en kill USR1 a H4");
+                                exit(-1);
+                            }
+                            
                         }
                         break;
                     default:
                         while (1)
                         {
                             sigsuspend(&maskusr2);
+                            //MANDAR SEÑAL DE H3 A N3
                             kill(pidn3, SIGUSR1);
                         }
                         break;
@@ -163,24 +205,37 @@ int main()
                 default:
 
                     break;
+
                 }
                 break;
             }
         }
-        kill(pidh3, SIGUSR1);
+        if (kill(pidh3, SIGUSR1) == -1)
+        {
+            perror("Error en kill USR1 h3");
+            exit(-1);
+        }
         while (1)
         {
             if ((mediavuelta % 2) == 0)
             {
                 sigsuspend(&maskusr1);
                 mediavuelta++;
-                kill(pidh2, SIGUSR1);
+                if (kill(pidh2, SIGUSR1) == -1)
+                {
+                    perror("Error en kill USR1 h2");
+                    exit(-1);
+                }
             }
             else
             {
                 sigsuspend(&maskusr1);
                 mediavuelta++;
-                kill(pidh3, SIGUSR1);
+                if (kill(pidh3, SIGUSR1) == -1)
+                {
+                    perror("Error en kill USR1 h3");
+                    exit(-1);
+                }
             }
         }
     }
@@ -261,7 +316,9 @@ void alarma(int sig)
 }
 
 // MANEJADORES DE SIGUSR1
-void sigusrHandler1(int sig) {}
+void sigusrHandler1(int sig) {
+    printf("Señal recibida: %d\n", getpid());
+}
 
 // MANEJADORES DE SIGUSR2
 void sigusrHandler2(int sig)
